@@ -1,0 +1,74 @@
+body {
+  font-family: Poppins, sans-serif;
+  background: #f4f8f5;
+  padding: 20px;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.gradient {
+  background: linear-gradient(135deg, #74c69d, #52b788);
+  color: white;
+}
+
+.logo {
+  font-size: 40px;
+}
+
+.card, .hero-card, .result-card, .info-card {
+  background: white;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+}
+
+button {
+  width: 100%;
+  margin-top: 15px;
+  padding: 14px;
+  border-radius: 18px;
+  border: none;
+  background: #2d6a4f;
+  color: white;
+  font-size: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+.crop {
+  background: #d8f3dc;
+  padding: 25px;
+  text-align: center;
+  border-radius: 20px;
+  font-weight: bold;
+}
+
+.severity.high {
+  background: #ffccd5;
+  padding: 20px;
+  border-radius: 18px;
+  text-align: center;
+}
+
+.loader {
+  width: 50px;
+  height: 50px;
+  border: 6px solid #ddd;
+  border-top: 6px solid green;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
