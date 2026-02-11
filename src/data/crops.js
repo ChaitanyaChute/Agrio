@@ -1,0 +1,15 @@
+export const crops = [
+  "Tomato",
+  "Potato",
+  "Pepper",
+  "Cotton",
+  "Corn",
+  "Soybean",
+  "Rice",
+  "Wheat",
+  "Bean",
+  "Banana",
+  "Apple",
+  "Grapes",
+  "Sugarcane",
+];

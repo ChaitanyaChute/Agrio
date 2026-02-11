@@ -1,0 +1,72 @@
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4fff6;
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 40px;
+  background: #1b5e20;
+  color: white;
+}
+
+.navbar a {
+  color: white;
+  margin-right: 20px;
+  text-decoration: none;
+}
+
+.navbar select {
+  padding: 5px;
+}
+
+/* Hero */
+.hero {
+  text-align: center;
+  padding: 70px 20px;
+  background: linear-gradient(#2e7d32, #66bb6a);
+  color: white;
+}
+
+.hero button {
+  margin-top: 20px;
+  padding: 12px 25px;
+  border: none;
+  background: #ffffff;
+  color: #1b5e20;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Sections */
+.section,
+.upload-section {
+  padding: 40px;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+/* Footer */
+.footer {
+  background: #1b5e20;
+  color: white;
+  text-align: center;
+  padding: 15px;
+}
