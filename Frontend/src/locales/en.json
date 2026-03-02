@@ -1,0 +1,36 @@
+{
+  "header": { "home": "Home", "crops": "Crops", "weather": "Weather", "popular": "Popular", "scan": "Scan" },
+  "home": {
+    "welcome": "Welcome",
+    "subtitle": "Find crops, weather & disease info",
+    "step1": "Upload Leaf Image", "desc1": "Upload a clear image of the affected crop leaf.",
+    "step2": "Identify Disease", "desc2": "AI analyzes the image.",
+    "step3": "Check Severity", "desc3": "Check disease severity.",
+    "step4": "Treatment", "desc4": "Get suitable treatment."
+  },
+  "weather": {
+    "title": "Weather Updates", "subtitle": "Real-time forecast", "live": "Live",
+    "wind": "Wind", "humidity": "Humidity", "uv": "Rain Prob.",
+    "agronomy": "Farming Insights", "soilMoisture": "Soil Moisture", "optimal": "Adequate (40%)",
+    "soilTemp": "Soil Temp", "spraying": "Spraying", "advice": "Good day for farming.",
+    "forecast": "Forecast", "today": "Today", "yes": "Yes", "no": "No",
+    "conditions": { "clear": "Clear", "cloudy": "Cloudy", "fog": "Fog", "rain": "Rain", "storm": "Storm", "moderate": "Moderate" }
+  },
+  "scan": {
+    "title": "AI Disease Detection", "subtitle": "Smart diagnosis.",
+    "uploadTitle": "Upload Leaf Image", "uploadDesc": "Upload affected leaf photo.",
+    "browseBtn": "Browse File", "supports": "Supports: JPG, PNG",
+    "button": "Identify Disease", "analyzing": "Analyzing...",
+    "resultTitle": "Result", "confidence": "Accuracy",
+    "disease": "Detected", "cure": "Cure", "prevention": "Prevention",
+    "waitingTitle": "Ready to Scan", "waitingDesc": "Result will appear here.",
+    "demoName": "Early Blight", "demoCure": "Use Fungicide.", "demoPrev": "Crop Rotation."
+  },
+  "cropDetails": {
+    "back": "Back",
+    "cause": "Cause",
+    "signs": "Signs",
+    "prevention": "Prevention",
+    "nodata": "No disease data available for this crop."
+  }
+}
