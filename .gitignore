@@ -2,7 +2,7 @@
 model/dataset/
 
 # Trained model file — 50MB+
-model/models/
+
 
 # Python cache
 model/__pycache__/
