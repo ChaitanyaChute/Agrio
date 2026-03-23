@@ -45,9 +45,31 @@ const ShieldIcon = () => (
   </svg>
 );
 
+// ── Severity badge helper ──
+const getSeverityStyle = (severity) => {
+  switch (severity) {
+    case "High":     return "bg-red-100 text-red-700 border border-red-200";
+    case "Moderate": return "bg-yellow-100 text-yellow-700 border border-yellow-200";
+    case "None":     return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+    default:         return "bg-green-100 text-green-700 border border-green-200"; // Low
+  }
+};
+
+const getSeverityLabel = (severity, infected_pct) => {
+  if (severity === "None") return "Healthy — No Treatment Needed";
+  if (infected_pct !== null && infected_pct !== undefined) {
+    return `${severity} (${infected_pct}% infected)`;
+  }
+  return severity;
+};
+
+const isHealthy = (severity, name) =>
+  severity === "None" || name === "Healthy";
+
 function Scan() {
   const { t } = useTranslation();
   const [image, setImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -76,27 +98,53 @@ function Scan() {
   };
 
   const handleFile = (file) => {
-    if (!file.type.match('image.*')) return;
+    if (!file.type.match("image.*")) return;
     setImage(URL.createObjectURL(file));
+    setImageFile(file);
     setResult(null);
   };
 
-  const handleIdentify = () => {
-    if (!image) return;
+  const handleIdentify = async () => {
+    if (!image || !imageFile) return;
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setResult({
-        name: t("scan.demoName"),
-        conf: "96%",
-        cure: t("scan.demoCure"),
-        prev: t("scan.demoPrev")
+    setResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", imageFile);
+
+      const response = await fetch("http://localhost:8000/predict", {
+        method: "POST",
+        body: formData,
       });
-    }, 2000);
+
+      if (!response.ok) throw new Error("API call failed");
+
+      const data = await response.json();
+
+      setResult({
+        name:        data.disease,
+        crop:        data.crop,
+        conf:        data.confidence,
+        severity:    data.severity,
+        infected_pct: data.infected_area_pct,
+        chemical:    data.chemical_cure,
+        organic:     data.organic_cure,
+        description: data.description,
+        symptoms:    data.symptoms,
+        cause:       data.cause,
+      });
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Kuch error aaya! FastAPI aur Node server check karo.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const removeImage = () => {
     setImage(null);
+    setImageFile(null);
     setResult(null);
   };
 
@@ -108,11 +156,16 @@ function Scan() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        <div 
+
+        {/* Left — Upload Box */}
+        <div
           className={`group relative min-h-[400px] rounded-[30px] border-[3px] border-dashed border-[#1b4332]/20 bg-[#f8fcf8]/50 hover:border-green-500 hover:bg-white/60 cursor-pointer overflow-hidden flex flex-col items-center justify-center text-center transition-all duration-300
             ${dragActive ? "border-green-600 bg-green-50" : ""}
             ${image ? "border-none bg-transparent" : ""}`}
-          onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
           onClick={() => !image && inputRef.current.click()}
         >
           <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={handleChange} />
@@ -120,7 +173,7 @@ function Scan() {
           {image ? (
             <div className="w-full h-full p-3 flex items-center justify-center bg-white/40 backdrop-blur-sm rounded-[30px] border border-white/60 shadow-sm relative">
               <img src={image} alt="Preview" className="max-w-full max-h-[380px] object-contain rounded-2xl" />
-              <button 
+              <button
                 onClick={(e) => { e.stopPropagation(); removeImage(); }}
                 className="absolute top-4 right-4 bg-white/90 hover:bg-red-50 text-gray-500 hover:text-red-500 p-2 rounded-full shadow-md transition-all z-10"
               >
@@ -138,15 +191,18 @@ function Scan() {
           )}
         </div>
 
-        <div className={`rounded-[30px] transition-all duration-300 w-full ${!result ? 'min-h-[400px]' : 'h-auto'}`}>
+        {/* Right — Result Card */}
+        <div className={`rounded-[30px] transition-all duration-300 w-full ${!result ? "min-h-[400px]" : "h-auto"}`}>
           {!result ? (
-            <div className={`w-full h-full min-h-[400px] rounded-[30px] border-[3px] border-dashed border-[#1b4332]/10 bg-[#f8fcf8]/30 flex flex-col items-center justify-center text-center text-[#1b4332]/40`}>
+            <div className="w-full h-full min-h-[400px] rounded-[30px] border-[3px] border-dashed border-[#1b4332]/10 bg-[#f8fcf8]/30 flex flex-col items-center justify-center text-center text-[#1b4332]/40">
               <WaitingIcon />
               <p className="text-lg font-bold opacity-70 mb-1">{t("scan.waitingTitle")}</p>
               <p className="text-sm opacity-60 font-medium max-w-[200px]">{t("scan.waitingDesc")}</p>
             </div>
           ) : (
             <div className="w-full h-auto rounded-[30px] bg-white/60 backdrop-blur-xl border border-white/80 shadow-xl p-6 flex flex-col items-start text-left animate-fade-in">
+
+              {/* Header — Title + Confidence */}
               <div className="w-full flex justify-between items-start mb-4 border-b border-gray-100 pb-3">
                 <h3 className="text-xl font-bold text-[#113022]">{t("scan.resultTitle")}</h3>
                 <div className="text-right">
@@ -155,39 +211,103 @@ function Scan() {
                 </div>
               </div>
 
-              <div className="mb-4 w-full">
+              {/* Disease Name + Crop */}
+              <div className="mb-3 w-full">
                 <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">{t("scan.disease")}</p>
-                <h4 className="text-2xl sm:text-3xl font-extrabold text-[#c62828] leading-tight">{result.name}</h4>
+                <h4 className={`text-2xl sm:text-3xl font-extrabold leading-tight
+                  ${isHealthy(result.severity, result.name) ? "text-emerald-600" : "text-[#c62828]"}`}>
+                  {result.name}
+                </h4>
+                <p className="text-sm text-gray-400 font-medium mt-0.5">Crop: {result.crop}</p>
               </div>
 
-              <div className="space-y-3 w-full mt-auto overflow-y-auto pr-1 custom-scrollbar">
-                <div className="bg-[#f0fdf4] p-3.5 rounded-xl border border-green-100 flex gap-3">
-                  <div className="mt-0.5"><PillIcon /></div>
-                  <div>
-                    <p className="text-[10px] uppercase font-extrabold text-green-800 mb-0.5">{t("scan.cure")}</p>
-                    <p className="text-xs sm:text-sm font-medium text-green-900 leading-relaxed">{result.cure}</p>
-                  </div>
-                </div>
-                <div className="bg-[#eff6ff] p-3.5 rounded-xl border border-blue-100 flex gap-3">
-                  <div className="mt-0.5"><ShieldIcon /></div>
-                  <div>
-                    <p className="text-[10px] uppercase font-extrabold text-blue-800 mb-0.5">{t("scan.prevention")}</p>
-                    <p className="text-xs sm:text-sm font-medium text-blue-900 leading-relaxed">{result.prev}</p>
-                  </div>
-                </div>
+              {/* Severity Badge */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] uppercase font-bold text-gray-400">Severity:</span>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${getSeverityStyle(result.severity)}`}>
+                  {getSeverityLabel(result.severity, result.infected_pct)}
+                </span>
               </div>
+
+              {/* ── HEALTHY STATE — no cure needed ── */}
+              {isHealthy(result.severity, result.name) ? (
+                <div className="w-full mt-2 space-y-3">
+                  {result.description && (
+                    <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                      <p className="text-[10px] uppercase font-extrabold text-emerald-700 mb-1">Plant Status</p>
+                      <p className="text-xs sm:text-sm font-medium text-emerald-900 leading-relaxed">{result.description}</p>
+                    </div>
+                  )}
+                  <div className="bg-[#f0fdf4] p-4 rounded-xl border border-green-100 flex gap-3">
+                    <div className="mt-0.5"><ShieldIcon /></div>
+                    <div>
+                      <p className="text-[10px] uppercase font-extrabold text-green-800 mb-1">Maintenance Tips</p>
+                      <ul className="space-y-1">
+                        {result.organic?.map((o, i) => (
+                          <li key={i} className="text-xs sm:text-sm font-medium text-green-900">• {o}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+              ) : (
+                /* ── DISEASED STATE — show full cure info ── */
+                <div className="space-y-3 w-full overflow-y-auto pr-1 custom-scrollbar">
+
+                  {/* About Disease */}
+                  {result.description && (
+                    <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                      <p className="text-[10px] uppercase font-extrabold text-gray-500 mb-1">About Disease</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-700 leading-relaxed">{result.description}</p>
+                      {result.cause && (
+                        <p className="text-[10px] text-gray-400 mt-1">Cause: {result.cause}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Chemical Cure */}
+                  <div className="bg-[#f0fdf4] p-3.5 rounded-xl border border-green-100 flex gap-3">
+                    <div className="mt-0.5"><PillIcon /></div>
+                    <div>
+                      <p className="text-[10px] uppercase font-extrabold text-green-800 mb-1">Chemical Cure</p>
+                      <ul className="space-y-0.5">
+                        {result.chemical?.map((c, i) => (
+                          <li key={i} className="text-xs sm:text-sm font-medium text-green-900">• {c}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Organic Cure */}
+                  <div className="bg-[#eff6ff] p-3.5 rounded-xl border border-blue-100 flex gap-3">
+                    <div className="mt-0.5"><ShieldIcon /></div>
+                    <div>
+                      <p className="text-[10px] uppercase font-extrabold text-blue-800 mb-1">Organic Cure</p>
+                      <ul className="space-y-0.5">
+                        {result.organic?.map((o, i) => (
+                          <li key={i} className="text-xs sm:text-sm font-medium text-blue-900">• {o}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
             </div>
           )}
         </div>
       </div>
 
+      {/* Scan Button */}
       <div className="flex justify-center mt-8">
-        <button 
+        <button
           onClick={handleIdentify}
           disabled={!image || loading}
           className={`px-12 py-3.5 rounded-full font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all duration-300
-            ${!image || loading 
-              ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" 
+            ${!image || loading
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
               : "bg-[#2e7d32] text-white hover:bg-[#1b5e20] hover:shadow-green-900/20 hover:-translate-y-1 active:scale-95"}`}
         >
           {loading ? (

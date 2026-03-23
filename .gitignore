@@ -1,0 +1,22 @@
+# Dataset — 22K images, GBs of data
+model/dataset/
+
+# Trained model file — 50MB+
+model/models/
+
+# Python cache
+model/__pycache__/
+model/src/__pycache__/
+model/venv/
+
+# Node
+Backend/node_modules/
+Frontend/node_modules/
+
+# Environment — SECRET!
+Backend/.env
+Frontend/.env
+
+# OS
+.DS_Store
+Thumbs.db
