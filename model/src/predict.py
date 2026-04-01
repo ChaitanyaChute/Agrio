@@ -1,11 +1,12 @@
 import torch
+import cv2
+import numpy as np
 from torchvision import transforms
 from PIL import Image
-from src.config import MODEL_SAVE_PATH, CLASS_NAMES, IMAGE_SIZE, DEVICE, NUM_CLASSES
+from src.config import MODEL_SAVE_PATH, CLASS_NAMES, IMAGE_SIZE, DEVICE
 from src.model import get_model
 
 
-# Model load 
 def load_model():
     model = get_model(pretrained=False)
     model.load_state_dict(torch.load(MODEL_SAVE_PATH, map_location=DEVICE))
@@ -14,7 +15,6 @@ def load_model():
     return model
 
 
-# Image preprocess
 def preprocess_image(image_path):
     transform = transforms.Compose([
         transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
@@ -23,11 +23,37 @@ def preprocess_image(image_path):
                              [0.229, 0.224, 0.225])
     ])
     image = Image.open(image_path).convert("RGB")
-    return transform(image).unsqueeze(0)  # batch dimension add 
+    return transform(image).unsqueeze(0)
 
 
-# Predict 
+def get_green_ratio(image_path):
+    image = cv2.imread(image_path)
+    if image is None:
+        return 0.0
+
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    lower_green = np.array([25, 40, 40])
+    upper_green = np.array([90, 255, 255])
+
+    mask = cv2.inRange(hsv, lower_green, upper_green)
+
+    green_pixels = cv2.countNonZero(mask)
+    total_pixels = image.shape[0] * image.shape[1]
+
+    return green_pixels / total_pixels
+
+
 def predict(image_path):
+    # 🔥 NON-LEAF CHECK
+    green_ratio = get_green_ratio(image_path)
+
+    if green_ratio < 0.12:
+        return {
+            "error": "not_a_leaf"
+        }
+
+    # Model prediction
     model = load_model()
     image_tensor = preprocess_image(image_path).to(DEVICE)
 
@@ -49,10 +75,6 @@ if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2:
         print("Usage: python -m src.predict <image_path>")
-        print("Example: python -m src.predict test.jpg")
     else:
-        image_path = sys.argv[1]
-        result = predict(image_path)
-        print(f"\nDisease Detected: {result['disease']}")
-        print(f"Confidence: {result['confidence']}")
-
+        result = predict(sys.argv[1])
+        print(result)

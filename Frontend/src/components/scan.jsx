@@ -45,13 +45,39 @@ const ShieldIcon = () => (
   </svg>
 );
 
+// ── Not a leaf UI ──
+const NotALeafCard = () => (
+  <div className="w-full h-auto rounded-[30px] bg-white/60 backdrop-blur-xl border border-orange-200 shadow-xl p-6 flex flex-col items-center text-center animate-fade-in">
+    <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500">
+        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+    </div>
+    <h3 className="text-xl font-extrabold text-orange-600 mb-2">Not a Leaf Image</h3>
+    <p className="text-sm text-gray-500 font-medium leading-relaxed max-w-[260px]">
+      The uploaded image does not appear to be a plant leaf. Please upload a clear, close-up photo of a leaf for accurate disease detection.
+    </p>
+    <div className="mt-5 bg-orange-50 border border-orange-100 rounded-2xl px-5 py-3 text-left w-full">
+      <p className="text-[10px] uppercase font-extrabold text-orange-700 mb-2">Tips for better results</p>
+      <ul className="space-y-1">
+        <li className="text-xs text-orange-800 font-medium">• Use a close-up photo of a single leaf</li>
+        <li className="text-xs text-orange-800 font-medium">• Make sure the leaf is clearly visible</li>
+        <li className="text-xs text-orange-800 font-medium">• Avoid background clutter or other objects</li>
+        <li className="text-xs text-orange-800 font-medium">• Good lighting gives better accuracy</li>
+      </ul>
+    </div>
+  </div>
+);
+
 // ── Severity badge helper ──
 const getSeverityStyle = (severity) => {
   switch (severity) {
     case "High":     return "bg-red-100 text-red-700 border border-red-200";
     case "Moderate": return "bg-yellow-100 text-yellow-700 border border-yellow-200";
     case "None":     return "bg-emerald-100 text-emerald-700 border border-emerald-200";
-    default:         return "bg-green-100 text-green-700 border border-green-200"; // Low
+    default:         return "bg-green-100 text-green-700 border border-green-200";
   }
 };
 
@@ -73,6 +99,7 @@ function Scan() {
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [notALeaf, setNotALeaf] = useState(false); // ← NEW
   const inputRef = useRef(null);
 
   const handleDrag = (e) => {
@@ -102,12 +129,14 @@ function Scan() {
     setImage(URL.createObjectURL(file));
     setImageFile(file);
     setResult(null);
+    setNotALeaf(false); // ← reset on new image
   };
 
   const handleIdentify = async () => {
     if (!image || !imageFile) return;
     setLoading(true);
     setResult(null);
+    setNotALeaf(false);
 
     try {
       const formData = new FormData();
@@ -118,21 +147,30 @@ function Scan() {
         body: formData,
       });
 
+      // ── Handle not-a-leaf (422) ──
+      if (response.status === 422) {
+        const errData = await response.json();
+        if (errData?.detail?.error === "not_a_leaf") {
+          setNotALeaf(true);
+          return;
+        }
+      }
+
       if (!response.ok) throw new Error("API call failed");
 
       const data = await response.json();
 
       setResult({
-        name:        data.disease,
-        crop:        data.crop,
-        conf:        data.confidence,
-        severity:    data.severity,
+        name:         data.disease,
+        crop:         data.crop,
+        conf:         data.confidence,
+        severity:     data.severity,
         infected_pct: data.infected_area_pct,
-        chemical:    data.chemical_cure,
-        organic:     data.organic_cure,
-        description: data.description,
-        symptoms:    data.symptoms,
-        cause:       data.cause,
+        chemical:     data.chemical_cure,
+        organic:      data.organic_cure,
+        description:  data.description,
+        symptoms:     data.symptoms,
+        cause:        data.cause,
       });
     } catch (err) {
       console.error("Error:", err);
@@ -146,6 +184,7 @@ function Scan() {
     setImage(null);
     setImageFile(null);
     setResult(null);
+    setNotALeaf(false); // ← reset on remove
   };
 
   return (
@@ -192,13 +231,21 @@ function Scan() {
         </div>
 
         {/* Right — Result Card */}
-        <div className={`rounded-[30px] transition-all duration-300 w-full ${!result ? "min-h-[400px]" : "h-auto"}`}>
-          {!result ? (
+        <div className={`rounded-[30px] transition-all duration-300 w-full ${!result && !notALeaf ? "min-h-[400px]" : "h-auto"}`}>
+
+          {/* Not a leaf state */}
+          {notALeaf ? (
+            <NotALeafCard />
+
+          /* Waiting state */
+          ) : !result ? (
             <div className="w-full h-full min-h-[400px] rounded-[30px] border-[3px] border-dashed border-[#1b4332]/10 bg-[#f8fcf8]/30 flex flex-col items-center justify-center text-center text-[#1b4332]/40">
               <WaitingIcon />
               <p className="text-lg font-bold opacity-70 mb-1">{t("scan.waitingTitle")}</p>
               <p className="text-sm opacity-60 font-medium max-w-[200px]">{t("scan.waitingDesc")}</p>
             </div>
+
+          /* Result state */
           ) : (
             <div className="w-full h-auto rounded-[30px] bg-white/60 backdrop-blur-xl border border-white/80 shadow-xl p-6 flex flex-col items-start text-left animate-fade-in">
 
@@ -229,7 +276,7 @@ function Scan() {
                 </span>
               </div>
 
-              {/* ── HEALTHY STATE — no cure needed ── */}
+              {/* HEALTHY STATE */}
               {isHealthy(result.severity, result.name) ? (
                 <div className="w-full mt-2 space-y-3">
                   {result.description && (
@@ -252,10 +299,8 @@ function Scan() {
                 </div>
 
               ) : (
-                /* ── DISEASED STATE — show full cure info ── */
+                /* DISEASED STATE */
                 <div className="space-y-3 w-full overflow-y-auto pr-1 custom-scrollbar">
-
-                  {/* About Disease */}
                   {result.description && (
                     <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
                       <p className="text-[10px] uppercase font-extrabold text-gray-500 mb-1">About Disease</p>
@@ -265,8 +310,6 @@ function Scan() {
                       )}
                     </div>
                   )}
-
-                  {/* Chemical Cure */}
                   <div className="bg-[#f0fdf4] p-3.5 rounded-xl border border-green-100 flex gap-3">
                     <div className="mt-0.5"><PillIcon /></div>
                     <div>
@@ -278,8 +321,6 @@ function Scan() {
                       </ul>
                     </div>
                   </div>
-
-                  {/* Organic Cure */}
                   <div className="bg-[#eff6ff] p-3.5 rounded-xl border border-blue-100 flex gap-3">
                     <div className="mt-0.5"><ShieldIcon /></div>
                     <div>
@@ -291,10 +332,8 @@ function Scan() {
                       </ul>
                     </div>
                   </div>
-
                 </div>
               )}
-
             </div>
           )}
         </div>

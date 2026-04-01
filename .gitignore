@@ -1,8 +1,6 @@
 # Dataset — 22K images, GBs of data
 model/dataset/
 
-# Trained model file — 50MB+
-
 
 # Python cache
 model/__pycache__/

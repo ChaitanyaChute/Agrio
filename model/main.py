@@ -134,6 +134,14 @@ async def predict_disease(file: UploadFile = File(...)):
     try:
         # Step 1 — ML prediction
         ml_result = predict(tmp_path)
+
+        # ✅ NOT-A-LEAF CHECK — must be before accessing ["disease"]
+        if ml_result.get("error") == "not_a_leaf":
+            raise HTTPException(
+                status_code=422,
+                detail={"error": "not_a_leaf"}
+            )
+
         disease_class = ml_result["disease"]
         confidence_str = ml_result["confidence"]
         confidence = float(confidence_str.replace("%", ""))
@@ -172,6 +180,9 @@ async def predict_disease(file: UploadFile = File(...)):
             "symptoms":          db_info["symptoms"],
             "cause":             db_info["cause"],
         }
+
+    except HTTPException:
+        raise  # ✅ re-raise 422/400 without catching them as 500
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

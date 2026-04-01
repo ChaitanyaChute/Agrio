@@ -1,6 +1,6 @@
 import os
 
-DATASET_PATH = r"C:\Users\ketan\OneDrive\Desktop\crop-disease-detection\dataset"
+DATASET_PATH = r"C:\Users\ketan\OneDrive\Desktop\DL-Project-agrio-website\model\dataset"
 
 classes = sorted(os.listdir(DATASET_PATH))
 total = 0
