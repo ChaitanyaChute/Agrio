@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: crop-disease-model
+    env: python
+    rootDir: .
+    buildCommand: pip install -r requirements-prod.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info
+    envVars:
+      - key: MODEL_PATH
+        value: /opt/render/project/src/models/mobilenetv3_crop.pth
+      - key: DEVICE
+        value: cpu
+      - key: NODE_BASE_URL
+        value: https://dl-project-backend.onrender.com/api
+      - key: ALLOWED_ORIGINS
+        value: https://agrioo.vercel.app
