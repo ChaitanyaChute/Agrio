@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 
 const SunIcon = ({ className = "w-10 h-10" }) => (
@@ -34,44 +34,15 @@ function Weather() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [locationName, setLocationName] = useState("Detecting...");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          fetchLocationName(latitude, longitude);
-          fetchWeatherData(latitude, longitude);
-        },
-        (err) => {
-          setError("Location access denied.");
-          setLoading(false);
-        }
-      );
-    } else {
-      setError("GPS not supported.");
-      setLoading(false);
-    }
-  }, [i18n.language]);
-
- 
   const fetchLocationName = async (lat, lon) => {
     try {
-     
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&accept-language=${i18n.language}`);
       const data = await response.json();
-      
-    
-      const place = 
-        data.address.hamlet || 
-        data.address.village || 
-        data.address.town || 
-        data.address.suburb || 
-        data.address.city || 
-        data.address.county ||
-        "My Farm";
-        
+      const place = data.address.hamlet || data.address.village || data.address.town || data.address.suburb || data.address.city || data.address.county || "My Farm";
       setLocationName(place);
+      localStorage.setItem("weather_location", place);
     } catch (error) {
       setLocationName("Unknown Location");
     }
@@ -83,12 +54,50 @@ function Weather() {
       const response = await fetch(url);
       const data = await response.json();
       setWeatherData(data);
+      localStorage.setItem("weather_cache", JSON.stringify(data));
       setLoading(false);
+      setIsRefreshing(false);
     } catch (err) {
       setError("Failed to fetch weather.");
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
+
+  const handleFetchAll = useCallback((isManual = false) => {
+    if (isManual) setIsRefreshing(true);
+    
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          fetchLocationName(latitude, longitude);
+          fetchWeatherData(latitude, longitude);
+        },
+        (err) => {
+          setError("Location access denied.");
+          setLoading(false);
+          setIsRefreshing(false);
+        }
+      );
+    } else {
+      setError("GPS not supported.");
+      setLoading(false);
+    }
+  }, [i18n.language]);
+
+  useEffect(() => {
+    const cachedData = localStorage.getItem("weather_cache");
+    const cachedLoc = localStorage.getItem("weather_location");
+
+    if (cachedData && cachedLoc) {
+      setWeatherData(JSON.parse(cachedData));
+      setLocationName(cachedLoc);
+      setLoading(false);
+    } else {
+      handleFetchAll();
+    }
+  }, [handleFetchAll]);
 
   const getWeatherCondition = (code) => {
     if (code === 0) return t("weather.conditions.clear");
@@ -103,7 +112,6 @@ function Weather() {
   const getDayName = (dateString) => {
     const date = new Date(dateString);
     const dayIndex = date.getDay();
-   
     const enDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const hiDays = ["रवि", "सोम", "मंगल", "बुध", "गुरु", "शुक्र", "शनि"];
     return i18n.language === 'hi' ? hiDays[dayIndex] : enDays[dayIndex];
@@ -122,8 +130,18 @@ function Weather() {
 
   return (
     <section className="w-[90%] max-w-[1200px] mx-auto mt-6 mb-20">
-      
-      <div className="text-center mb-10">
+      <div className="flex flex-col items-center mb-10 relative">
+        <button 
+          onClick={() => handleFetchAll(true)}
+          disabled={isRefreshing}
+          className="absolute right-0 top-0 bg-[#1b4332] text-white p-2 rounded-full shadow-md hover:bg-[#2d6a4f] transition-all disabled:opacity-50"
+          title="Refresh Weather"
+        >
+          <svg className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+        
         <h2 className="text-3xl sm:text-4xl font-normal text-[#1b4332] mb-2 drop-shadow-sm">
           {t("weather.title")}
         </h2>
@@ -133,15 +151,12 @@ function Weather() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-       
         <div className="lg:col-span-4 bg-gradient-to-br from-[#1b5e20] to-[#2e7d32] rounded-[35px] p-8 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[400px]">
           <div className="absolute top-[-50px] right-[-50px] w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
           
           <div>
             <div className="flex justify-between items-start">
               <div>
-             
                 <p className="text-lg font-bold opacity-100 flex items-center gap-1">{locationName}</p>
                 <p className="text-sm opacity-70">{t("weather.today")}</p>
               </div>
@@ -181,21 +196,20 @@ function Weather() {
           </div>
         </div>
 
-      
         <div className="lg:col-span-4 bg-white/40 backdrop-blur-xl border border-white/60 rounded-[35px] p-8 shadow-sm flex flex-col gap-6">
           <h3 className="text-xl font-bold text-[#1b4332] flex items-center gap-2">
-             {t("weather.agronomy")}
+              {t("weather.agronomy")}
           </h3>
 
           <div className="space-y-6">
             <div>
               <div className="flex justify-between text-sm mb-2 font-medium text-[#1b4332]">
                 <span>{t("weather.soilMoisture")}</span>
-                <span>{weatherData.hourly.soil_moisture_0_to_1cm[12] * 100}%</span> 
+                <span>{Math.round(weatherData.hourly.soil_moisture_0_to_1cm[12] * 100)}%</span> 
               </div>
               <div className="w-full bg-white h-3 rounded-full overflow-hidden shadow-inner border border-white/50">
                 <div 
-                  className="bg-blue-500 h-full rounded-full" 
+                  className="bg-blue-500 h-full rounded-full transition-all duration-1000" 
                   style={{ width: `${weatherData.hourly.soil_moisture_0_to_1cm[12] * 100}%` }}
                 ></div>
               </div>
@@ -225,10 +239,9 @@ function Weather() {
           </div>
         </div>
 
-       
         <div className="lg:col-span-4 bg-white/40 backdrop-blur-xl border border-white/60 rounded-[35px] p-8 shadow-sm overflow-hidden">
           <h3 className="text-xl font-bold text-[#1b4332] mb-6 flex items-center gap-2">
-             {t("weather.forecast")}
+              {t("weather.forecast")}
           </h3>
           
           <div className="flex flex-col gap-3">
@@ -252,7 +265,6 @@ function Weather() {
             ))}
           </div>
         </div>
-
       </div>
     </section>
   );
