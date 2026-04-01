@@ -4,17 +4,23 @@ import shutil
 import os
 import tempfile
 import requests
+from typing import List
 
 from src.predict import predict
 from src.severity import get_severity_with_fallback
 
 app = FastAPI(title="Crop Disease Detection API")
 
-NODE_BASE_URL = "http://localhost:5000/api"
+NODE_BASE_URL = os.getenv("NODE_BASE_URL", "http://localhost:5000/api")
+ALLOWED_ORIGINS: List[str] = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+    if origin.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

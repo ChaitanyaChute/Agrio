@@ -3,7 +3,10 @@ import os
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATASET_PATH = os.path.join(BASE_DIR, "Dataset")
-MODEL_SAVE_PATH = os.path.join(BASE_DIR, "models", "mobilenetv3_crop.pth")
+MODEL_SAVE_PATH = os.getenv(
+    "MODEL_PATH",
+    os.path.join(BASE_DIR, "models", "mobilenetv3_crop.pth"),
+)
 
 # Training Hyperparameters
 BATCH_SIZE = 32
@@ -65,4 +68,4 @@ CLASS_NAMES = [
 
 NUM_CLASSES = len(CLASS_NAMES)  # 45
 
-DEVICE = "cuda"
+DEVICE = os.getenv("DEVICE", "cuda")

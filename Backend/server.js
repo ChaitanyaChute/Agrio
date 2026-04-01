@@ -1,15 +1,34 @@
 require("dotenv").config();
+const dns = require('dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']);
+dns.setDefaultResultOrder('ipv4first');
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const Disease = require("./models/Disease");
 
 const app = express();
-app.use(cors());
+
+// CORS Configuration (env-driven)
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173,http://localhost:3000").split(",").map(o => o.trim()).filter(Boolean);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, origin);
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
+const mongoUri = process.env.MONGO_URI;
+if (!mongoUri) {
+  console.error("MONGO_URI is not set. Please configure it in the environment.");
+  process.exit(1);
+}
+
 mongoose
-  .connect(process.env.MONGO_URI)
+  .connect(mongoUri)
   .then(() => console.log("MongoDB Connected Successfully"))
   .catch((err) => console.log("DB Connection Error:", err));
 
