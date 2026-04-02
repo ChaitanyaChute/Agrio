@@ -9,7 +9,7 @@ from src.model import get_model
 
 def load_model():
     model = get_model(pretrained=False)
-    model.load_state_dict(torch.load(MODEL_SAVE_PATH, map_location=DEVICE))
+    model.load_state_dict(torch.load(MODEL_SAVE_PATH, map_location=torch.device('cpu')))
     model.to(DEVICE)
     model.eval()
     return model
