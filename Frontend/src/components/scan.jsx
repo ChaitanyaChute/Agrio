@@ -142,7 +142,8 @@ function Scan() {
       const formData = new FormData();
       formData.append("file", imageFile);
 
-      const response = await fetch("http://localhost:8000/predict", {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+      const response = await fetch(`${apiBase}/predict`, {
         method: "POST",
         body: formData,
       });

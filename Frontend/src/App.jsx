@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import Header from "./components/Header";
 import Home from "./components/Home";
-import Crops from "./components/Crops";
+import Crops from "./components/crops";
 import Weather from "./components/Weather";
 import Popular from "./components/Popular";
 import Scan from "./components/scan";
