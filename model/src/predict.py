@@ -14,7 +14,6 @@ def load_model():
     model.eval()
     return model
 
-
 def preprocess_image(image_path):
     transform = transforms.Compose([
         transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
