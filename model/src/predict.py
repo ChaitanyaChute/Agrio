@@ -3,13 +3,14 @@ import cv2
 import numpy as np
 from torchvision import transforms
 from PIL import Image
-from src.config import MODEL_SAVE_PATH, CLASS_NAMES, IMAGE_SIZE, DEVICE
+from src.config import MODEL_SAVE_PATH, CLASS_NAMES, IMAGE_SIZE
 from src.model import get_model
 
+DEVICE = torch.device('cpu')
 
 def load_model():
     model = get_model(pretrained=False)
-    model.load_state_dict(torch.load(MODEL_SAVE_PATH, map_location=torch.device('cpu')))
+    model.load_state_dict(torch.load(MODEL_SAVE_PATH, map_location=DEVICE))
     model.to(DEVICE)
     model.eval()
     return model
@@ -45,7 +46,7 @@ def get_green_ratio(image_path):
 
 
 def predict(image_path):
-    # 🔥 NON-LEAF CHECK
+    #  NON-LEAF CHECK
     green_ratio = get_green_ratio(image_path)
 
     if green_ratio < 0.12:

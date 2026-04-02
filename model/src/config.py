@@ -68,4 +68,4 @@ CLASS_NAMES = [
 
 NUM_CLASSES = len(CLASS_NAMES)  # 45
 
-DEVICE = os.getenv("DEVICE", "cuda")
+DEVICE = os.getenv("DEVICE", "cpu")
