@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { getHindiTranslation, getCropName, getSeverityHindi } from "../data/diseaseTranslations";
 
 const UploadIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600/70 mb-4 transition-transform duration-300 group-hover:-translate-y-1">
@@ -45,8 +46,7 @@ const ShieldIcon = () => (
   </svg>
 );
 
-// ── Not a leaf UI ──
-const NotALeafCard = () => (
+const NotALeafCard = ({ t }) => (
   <div className="w-full h-auto rounded-[30px] bg-white/60 backdrop-blur-xl border border-orange-200 shadow-xl p-6 flex flex-col items-center text-center animate-fade-in">
     <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center mb-4">
       <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-orange-500">
@@ -55,23 +55,22 @@ const NotALeafCard = () => (
         <line x1="12" y1="17" x2="12.01" y2="17" />
       </svg>
     </div>
-    <h3 className="text-xl font-extrabold text-orange-600 mb-2">Not a Leaf Image</h3>
+    <h3 className="text-xl font-extrabold text-orange-600 mb-2">{t("scan.notLeafTitle")}</h3>
     <p className="text-sm text-gray-500 font-medium leading-relaxed max-w-[260px]">
-      The uploaded image does not appear to be a plant leaf. Please upload a clear, close-up photo of a leaf for accurate disease detection.
+      {t("scan.notLeafDesc")}
     </p>
     <div className="mt-5 bg-orange-50 border border-orange-100 rounded-2xl px-5 py-3 text-left w-full">
-      <p className="text-[10px] uppercase font-extrabold text-orange-700 mb-2">Tips for better results</p>
+      <p className="text-[10px] uppercase font-extrabold text-orange-700 mb-2">{t("scan.tipsTitle")}</p>
       <ul className="space-y-1">
-        <li className="text-xs text-orange-800 font-medium">• Use a close-up photo of a single leaf</li>
-        <li className="text-xs text-orange-800 font-medium">• Make sure the leaf is clearly visible</li>
-        <li className="text-xs text-orange-800 font-medium">• Avoid background clutter or other objects</li>
-        <li className="text-xs text-orange-800 font-medium">• Good lighting gives better accuracy</li>
+        <li className="text-xs text-orange-800 font-medium">• {t("scan.tip1")}</li>
+        <li className="text-xs text-orange-800 font-medium">• {t("scan.tip2")}</li>
+        <li className="text-xs text-orange-800 font-medium">• {t("scan.tip3")}</li>
+        <li className="text-xs text-orange-800 font-medium">• {t("scan.tip4")}</li>
       </ul>
     </div>
   </div>
 );
 
-// ── Severity badge helper ──
 const getSeverityStyle = (severity) => {
   switch (severity) {
     case "High":     return "bg-red-100 text-red-700 border border-red-200";
@@ -81,25 +80,19 @@ const getSeverityStyle = (severity) => {
   }
 };
 
-const getSeverityLabel = (severity, infected_pct) => {
-  if (severity === "None") return "Healthy — No Treatment Needed";
-  if (infected_pct !== null && infected_pct !== undefined) {
-    return `${severity} (${infected_pct}% infected)`;
-  }
-  return severity;
-};
-
 const isHealthy = (severity, name) =>
   severity === "None" || name === "Healthy";
 
 function Scan() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isHindi = i18n.language === "hi";
+
   const [image, setImage] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [notALeaf, setNotALeaf] = useState(false); // ← NEW
+  const [notALeaf, setNotALeaf] = useState(false);
   const inputRef = useRef(null);
 
   const handleDrag = (e) => {
@@ -129,7 +122,7 @@ function Scan() {
     setImage(URL.createObjectURL(file));
     setImageFile(file);
     setResult(null);
-    setNotALeaf(false); // ← reset on new image
+    setNotALeaf(false);
   };
 
   const handleIdentify = async () => {
@@ -148,7 +141,6 @@ function Scan() {
         body: formData,
       });
 
-      // ── Handle not-a-leaf (422) ──
       if (response.status === 422) {
         const errData = await response.json();
         if (errData?.detail?.error === "not_a_leaf") {
@@ -161,7 +153,7 @@ function Scan() {
 
       const data = await response.json();
 
-      setResult({
+      const englishResult = {
         name:         data.disease,
         crop:         data.crop,
         conf:         data.confidence,
@@ -172,6 +164,13 @@ function Scan() {
         description:  data.description,
         symptoms:     data.symptoms,
         cause:        data.cause,
+      };
+
+      const hindiData = getHindiTranslation(data.disease, data.crop);
+
+      setResult({
+        ...englishResult,
+        hi: hindiData,
       });
     } catch (err) {
       console.error("Error:", err);
@@ -185,7 +184,31 @@ function Scan() {
     setImage(null);
     setImageFile(null);
     setResult(null);
-    setNotALeaf(false); // ← reset on remove
+    setNotALeaf(false);
+  };
+
+  const d = result ? {
+    name:        isHindi && result.hi ? result.hi.disease_name : result.name,
+    crop:        isHindi ? getCropName(result.crop) : result.crop,
+    description: isHindi && result.hi ? result.hi.description : result.description,
+    cause:       isHindi && result.hi ? result.hi.cause : result.cause,
+    chemical:    isHindi && result.hi ? result.hi.chemical_cure : result.chemical,
+    organic:     isHindi && result.hi ? result.hi.organic_cure : result.organic,
+    severity:    isHindi ? getSeverityHindi(result.severity) : result.severity,
+    severityRaw: result.severity,
+    infected_pct: result.infected_pct,
+    conf:        result.conf,
+  } : null;
+
+  const getSeverityLabel = () => {
+    if (!d) return "";
+    if (d.severityRaw === "None") return isHindi ? "स्वस्थ — कोई उपचार आवश्यक नहीं" : "Healthy — No Treatment Needed";
+    if (d.infected_pct !== null && d.infected_pct !== undefined) {
+      return isHindi
+        ? `${d.severity} (${d.infected_pct}% संक्रमित)`
+        : `${d.severity} (${d.infected_pct}% infected)`;
+    }
+    return d.severity;
   };
 
   return (
@@ -197,7 +220,6 @@ function Scan() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
 
-        {/* Left — Upload Box */}
         <div
           className={`group relative min-h-[400px] rounded-[30px] border-[3px] border-dashed border-[#1b4332]/20 bg-[#f8fcf8]/50 hover:border-green-500 hover:bg-white/60 cursor-pointer overflow-hidden flex flex-col items-center justify-center text-center transition-all duration-300
             ${dragActive ? "border-green-600 bg-green-50" : ""}
@@ -231,14 +253,11 @@ function Scan() {
           )}
         </div>
 
-        {/* Right — Result Card */}
         <div className={`rounded-[30px] transition-all duration-300 w-full ${!result && !notALeaf ? "min-h-[400px]" : "h-auto"}`}>
 
-          {/* Not a leaf state */}
           {notALeaf ? (
-            <NotALeafCard />
+            <NotALeafCard t={t} />
 
-          /* Waiting state */
           ) : !result ? (
             <div className="w-full h-full min-h-[400px] rounded-[30px] border-[3px] border-dashed border-[#1b4332]/10 bg-[#f8fcf8]/30 flex flex-col items-center justify-center text-center text-[#1b4332]/40">
               <WaitingIcon />
@@ -246,52 +265,49 @@ function Scan() {
               <p className="text-sm opacity-60 font-medium max-w-[200px]">{t("scan.waitingDesc")}</p>
             </div>
 
-          /* Result state */
           ) : (
             <div className="w-full h-auto rounded-[30px] bg-white/60 backdrop-blur-xl border border-white/80 shadow-xl p-6 flex flex-col items-start text-left animate-fade-in">
 
-              {/* Header — Title + Confidence */}
               <div className="w-full flex justify-between items-start mb-4 border-b border-gray-100 pb-3">
                 <h3 className="text-xl font-bold text-[#113022]">{t("scan.resultTitle")}</h3>
                 <div className="text-right">
                   <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider block mb-1">{t("scan.confidence")}</span>
-                  <span className="text-sm font-bold text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-100">{result.conf}</span>
+                  <span className="text-sm font-bold text-green-700 bg-green-50 px-2.5 py-1 rounded-lg border border-green-100">{d.conf}</span>
                 </div>
               </div>
 
-              {/* Disease Name + Crop */}
               <div className="mb-3 w-full">
                 <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider mb-1">{t("scan.disease")}</p>
                 <h4 className={`text-2xl sm:text-3xl font-extrabold leading-tight
-                  ${isHealthy(result.severity, result.name) ? "text-emerald-600" : "text-[#c62828]"}`}>
-                  {result.name}
+                  ${isHealthy(d.severityRaw, result.name) ? "text-emerald-600" : "text-[#c62828]"}`}>
+                  {d.name}
                 </h4>
-                <p className="text-sm text-gray-400 font-medium mt-0.5">Crop: {result.crop}</p>
+                <p className="text-sm text-gray-400 font-medium mt-0.5">
+                  {t("scan.cropLabel")}: {d.crop}
+                </p>
               </div>
 
-              {/* Severity Badge */}
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-[10px] uppercase font-bold text-gray-400">Severity:</span>
-                <span className={`text-xs font-bold px-3 py-1 rounded-full ${getSeverityStyle(result.severity)}`}>
-                  {getSeverityLabel(result.severity, result.infected_pct)}
+                <span className="text-[10px] uppercase font-bold text-gray-400">{t("scan.severityLabel")}:</span>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full ${getSeverityStyle(d.severityRaw)}`}>
+                  {getSeverityLabel()}
                 </span>
               </div>
 
-              {/* HEALTHY STATE */}
-              {isHealthy(result.severity, result.name) ? (
+              {isHealthy(d.severityRaw, result.name) ? (
                 <div className="w-full mt-2 space-y-3">
-                  {result.description && (
+                  {d.description && (
                     <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-                      <p className="text-[10px] uppercase font-extrabold text-emerald-700 mb-1">Plant Status</p>
-                      <p className="text-xs sm:text-sm font-medium text-emerald-900 leading-relaxed">{result.description}</p>
+                      <p className="text-[10px] uppercase font-extrabold text-emerald-700 mb-1">{t("scan.plantStatus")}</p>
+                      <p className="text-xs sm:text-sm font-medium text-emerald-900 leading-relaxed">{d.description}</p>
                     </div>
                   )}
                   <div className="bg-[#f0fdf4] p-4 rounded-xl border border-green-100 flex gap-3">
                     <div className="mt-0.5"><ShieldIcon /></div>
                     <div>
-                      <p className="text-[10px] uppercase font-extrabold text-green-800 mb-1">Maintenance Tips</p>
+                      <p className="text-[10px] uppercase font-extrabold text-green-800 mb-1">{t("scan.maintenanceTips")}</p>
                       <ul className="space-y-1">
-                        {result.organic?.map((o, i) => (
+                        {d.organic?.map((o, i) => (
                           <li key={i} className="text-xs sm:text-sm font-medium text-green-900">• {o}</li>
                         ))}
                       </ul>
@@ -300,23 +316,22 @@ function Scan() {
                 </div>
 
               ) : (
-                /* DISEASED STATE */
                 <div className="space-y-3 w-full overflow-y-auto pr-1 custom-scrollbar">
-                  {result.description && (
+                  {d.description && (
                     <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100">
-                      <p className="text-[10px] uppercase font-extrabold text-gray-500 mb-1">About Disease</p>
-                      <p className="text-xs sm:text-sm font-medium text-gray-700 leading-relaxed">{result.description}</p>
-                      {result.cause && (
-                        <p className="text-[10px] text-gray-400 mt-1">Cause: {result.cause}</p>
+                      <p className="text-[10px] uppercase font-extrabold text-gray-500 mb-1">{t("scan.aboutDisease")}</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-700 leading-relaxed">{d.description}</p>
+                      {d.cause && (
+                        <p className="text-[10px] text-gray-400 mt-1">{t("scan.causeLabel")}: {d.cause}</p>
                       )}
                     </div>
                   )}
                   <div className="bg-[#f0fdf4] p-3.5 rounded-xl border border-green-100 flex gap-3">
                     <div className="mt-0.5"><PillIcon /></div>
                     <div>
-                      <p className="text-[10px] uppercase font-extrabold text-green-800 mb-1">Chemical Cure</p>
+                      <p className="text-[10px] uppercase font-extrabold text-green-800 mb-1">{t("scan.chemicalCure")}</p>
                       <ul className="space-y-0.5">
-                        {result.chemical?.map((c, i) => (
+                        {d.chemical?.map((c, i) => (
                           <li key={i} className="text-xs sm:text-sm font-medium text-green-900">• {c}</li>
                         ))}
                       </ul>
@@ -325,9 +340,9 @@ function Scan() {
                   <div className="bg-[#eff6ff] p-3.5 rounded-xl border border-blue-100 flex gap-3">
                     <div className="mt-0.5"><ShieldIcon /></div>
                     <div>
-                      <p className="text-[10px] uppercase font-extrabold text-blue-800 mb-1">Organic Cure</p>
+                      <p className="text-[10px] uppercase font-extrabold text-blue-800 mb-1">{t("scan.organicCure")}</p>
                       <ul className="space-y-0.5">
-                        {result.organic?.map((o, i) => (
+                        {d.organic?.map((o, i) => (
                           <li key={i} className="text-xs sm:text-sm font-medium text-blue-900">• {o}</li>
                         ))}
                       </ul>
@@ -340,7 +355,6 @@ function Scan() {
         </div>
       </div>
 
-      {/* Scan Button */}
       <div className="flex justify-center mt-8">
         <button
           onClick={handleIdentify}
